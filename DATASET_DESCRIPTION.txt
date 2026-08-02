@@ -1,0 +1,260 @@
+================================================================================
+        DATASET DOCUMENTATION FOR SNA E-COMMERCE PAPER IMPLEMENTATION
+        "Recommendation Networks of Homogeneous Products on an E-commerce Platform"
+================================================================================
+Prepared: August 2026
+Workspace: d:\sna
+Paper Reference: Recommendation Networks of Homogeneous Products on an E-commerce
+                 Platform — Measurement and Competition Effects
+
+================================================================================
+  DATASET 1 (SMALL / TESTING DATASET)
+  "ScrapeMe Pokemon Shop — Recommendation Network"
+================================================================================
+
+PURPOSE
+-------
+  This is a small, lightweight dataset used for TESTING and VALIDATING the code
+  that implements the paper's metrics. Because it is tiny (21 nodes), you can
+  manually verify whether your calculations for PageRank, Clustering Coefficient,
+  etc. are producing correct results before scaling up to the large dataset.
+
+SOURCE
+------
+  Website    : https://scrapeme.live/shop/
+  Type       : A publicly available e-commerce sandbox (WooCommerce store)
+               specifically designed for web scraping practice.
+  Scraped on : August 2026
+
+HOW IT WAS COLLECTED
+---------------------
+  Tool used  : Python 3 — requests library + BeautifulSoup (bs4)
+  Script     : d:\sna\real_scraper.py
+
+  Methodology:
+    1. Seed URL: Started at a single product page (https://scrapeme.live/shop/bulbasaur/)
+    2. BeautifulSoup parsed the HTML to extract:
+         - Product Name  (HTML selector: h1.product_title)
+         - Price         (HTML selector: p.price)
+         - Category      (HTML selector: span.posted_in a)
+    3. The "Related products" HTML section was parsed to extract recommended
+       product URLs (selector: section.related.products a.woocommerce-LoopProduct-link)
+    4. Each recommended product URL was added to a queue.
+    5. The scraper visited each queued product and repeated the process.
+    6. Traversal stopped when all reachable products were visited.
+
+FILES
+-----
+  scraped_nodes.csv  (22 lines including header)
+  scraped_edges.csv  (64 lines including header)
+
+DATASET STATISTICS
+------------------
+  Total Products (Nodes)     : 21
+  Total Recommendation Links : 63  (directed edges)
+  Unique Product Categories  : 9
+    (Pokemon, Hairy Bug, Cocoon, Mouse, Bird, Butterfly, Cobra, Flame, Poison Bee)
+  Price Range                : £25.00 — £182.00  (GBP)
+  Recommendations per product: 3 (fixed, every product recommends exactly 3 others)
+
+COLUMNS — scraped_nodes.csv
+----------------------------
+  Column                   | Description
+  -------------------------|--------------------------------------------------
+  Product ID               | Unique product slug from URL (e.g., "bulbasaur")
+  Product Name             | Full product name as shown on the page
+  Category                 | WooCommerce product category (e.g., "Pokemon")
+  Price                    | Listed price in GBP (e.g., "£63.00")
+  Recommended product IDs  | Comma-separated list of Product IDs recommended
+                           | on this product's page (the network edges)
+
+COLUMNS — scraped_edges.csv
+----------------------------
+  Column             | Description
+  -------------------|------------------------------------------------------
+  Source Product ID  | Product that is doing the recommending
+  Target Product ID  | Product being recommended
+
+SAMPLE ROWS — scraped_nodes.csv
+---------------------------------
+  Product ID | Product Name | Category  | Price  | Recommended product IDs
+  -----------|--------------|-----------|--------|------------------------
+  bulbasaur  | Bulbasaur    | Pokemon   | £63.00 | Weedle,Metapod,Blastoise
+  Weedle     | Weedle       | Hairy Bug | £25.00 | Squirtle,Ekans,Pidgeotto
+  Charizard  | Charizard    | Flame     | £156.00| Raticate,Butterfree,Charmeleon
+
+SAMPLE ROWS — scraped_edges.csv
+---------------------------------
+  Source Product ID | Target Product ID
+  ------------------|------------------
+  bulbasaur         | Weedle
+  bulbasaur         | Metapod
+  bulbasaur         | Blastoise
+
+SUITABILITY FOR THE PAPER
+--------------------------
+  [GOOD FOR] : Testing code correctness for network metrics (AvgCC, PRVar, Size)
+  [GOOD FOR] : Debugging graph traversal and Gephi import
+  [NOT IDEAL]: Statistical regression (too few nodes for meaningful p-values)
+  [NOT IDEAL]: Replicating the paper's econometric results
+
+
+================================================================================
+  DATASET 2 (LARGE / MAIN DATASET)
+  "Amazon Video Games — Recommendation Network (Stanford SNAP)"
+================================================================================
+
+PURPOSE
+-------
+  This is the MAIN dataset to be used for implementing and replicating the
+  paper's analysis. With 50,953 products and 1.4 million directed recommendation
+  links, it provides sufficient scale for all structural network metrics and
+  econometric regression models described in the paper.
+
+SOURCE
+------
+  Website    : Stanford Network Analysis Project (SNAP)
+  URL        : https://snap.stanford.edu/data/amazon/productGraph/categoryFiles/
+  File       : meta_Video_Games.json.gz
+  Collected  : Originally scraped by UCSD researchers (Julian McAuley et al.)
+               from Amazon.com. Data covers products up to year 2014.
+  Paper Ref  : "Ups and Downs: Modeling the Visual Evolution of Fashion Trends
+                with One-Class Collaborative Filtering" — McAuley et al., WWW 2015
+
+HOW IT WAS COLLECTED (from source)
+------------------------------------
+  Original collection: UCSD researchers crawled Amazon.com product pages,
+  extracting metadata and the "Customers who bought this also bought" section
+  to build the recommendation graph. The full metadata was released publicly
+  on the Stanford SNAP website.
+
+HOW IT WAS PROCESSED IN THIS PROJECT
+--------------------------------------
+  Tool used  : Python 3 — gzip (standard library) + ast.literal_eval + pandas
+  Script     : d:\sna\process_amazon_dataset.py
+
+  Methodology:
+    1. The .json.gz file was streamed line-by-line (to save RAM) using gzip.open()
+    2. Each line is a Python dictionary string (not standard JSON) representing
+       one product's metadata.
+    3. ast.literal_eval() safely parsed each line into a Python dictionary.
+    4. The following fields were extracted from each record:
+         - asin              -> Product ID
+         - title             -> Product Name
+         - price             -> Price in USD
+         - categories[0][-1] -> Deepest sub-category label
+         - related['also_bought'] -> List of recommended product ASINs (EDGES)
+    5. HTML tags were stripped from text fields using regex.
+    6. Two DataFrames (nodes, edges) were built and exported as CSV files.
+    7. Duplicates were removed from both nodes and edges.
+
+FILES
+-----
+  amazon_nodes.csv  (50,954 lines including header, ~10MB)
+  amazon_edges.csv  (1,406,223 lines including header, ~33MB)
+  meta_Video_Games.json.gz  (raw source file, 23MB)
+
+DATASET STATISTICS
+------------------
+  Total Products (Nodes)           : 50,953
+  Total Recommendation Links       : 1,406,222  (directed edges)
+  Products with a title            : 2,265
+  Products with a price            : 43,905
+  Products with recommendation links: 28,965
+  Unique Sub-categories            : 292
+  Top Categories:
+    Games               : 22,427 products
+    Kids & Family       :  5,379 products
+    Accessories         :  3,247 products
+    Casual Games        :  2,161 products
+    PC Game Downloads   :  2,129 products
+  Price Range (USD)                : $0.00 — $999.99
+  Average Price (USD)              : $40.88
+  Avg Recommendations per Product  : 48.55
+  Max Recommendations per Product  : 100
+
+COLUMNS — amazon_nodes.csv
+----------------------------
+  Column                   | Description
+  -------------------------|--------------------------------------------------
+  Product ID               | Amazon ASIN (10-character unique product ID)
+                           | e.g., "B000TI836G"
+  Product Name             | Product title as listed on Amazon (may be blank
+                           | if not present in the raw metadata)
+  Category                 | Deepest sub-category from Amazon's browse tree
+                           | e.g., "Games", "Accessories", "Skins"
+  Price (USD)              | Listed price in US Dollars (float, may be blank)
+  Recommended product IDs  | Comma-separated ASINs of products in the
+                           | "Customers also bought" section (the network)
+
+COLUMNS — amazon_edges.csv
+----------------------------
+  Column             | Description
+  -------------------|------------------------------------------------------
+  Source Product ID  | ASIN of the product that shows the recommendation
+  Target Product ID  | ASIN of the product being recommended
+  Type               | Always "Directed" (A recommends B != B recommends A)
+
+SAMPLE ROWS — amazon_nodes.csv
+--------------------------------
+  Product ID | Product Name                               | Category | Price
+  -----------|--------------------------------------------|----------|------
+  0984529527 | Dark Age Apocalypse: Forcelists HC         | Games    | 31.23
+  1574571931 | Rifts RPG: The Rifter #56                  | Games    |  9.50
+  B000TI836G | (title not in metadata)                    | Games    | 19.99
+
+SAMPLE ROWS — amazon_edges.csv
+--------------------------------
+  Source Product ID | Target Product ID | Type
+  ------------------|-------------------|--------
+  0078764343        | B000TI836G        | Directed
+  0078764343        | B003Q53VZC        | Directed
+  0078764343        | B00EFFW0HC        | Directed
+
+SUITABILITY FOR THE PAPER
+--------------------------
+  [GOOD FOR] : All structural network metrics (AvgCC, PRVar, Size, Density)
+  [GOOD FOR] : PageRank computation to identify influential products
+  [GOOD FOR] : FGLS regression models on network structure vs. competition
+  [GOOD FOR] : Gephi or NetworkX visualization of the recommendation graph
+  [CONSIDER] : The "also_bought" field = recommendation edge (maps exactly to
+               what the paper calls the "recommendation link")
+
+
+================================================================================
+  HOW THESE DATASETS MAP TO THE PAPER
+================================================================================
+
+  Paper Concept               | This Dataset Field
+  ----------------------------|--------------------------------------------
+  Product node                | Row in amazon_nodes.csv
+  Recommendation link (edge)  | Row in amazon_edges.csv
+  Product ID                  | "Product ID" column (ASIN)
+  Network Size                | Total number of nodes in a connected component
+  AvgCC (Avg Clustering Coeff)| Computed from the edges using networkx
+  PRVar (PageRank Variance)   | Computed via networkx.pagerank() on the graph
+  Price                       | "Price (USD)" column
+  Category (homogeneity)      | "Category" column
+
+
+================================================================================
+  HOW TO USE THESE FILES
+================================================================================
+
+  1. TESTING (small dataset):
+     - Load scraped_nodes.csv and scraped_edges.csv in Python or Gephi
+     - Verify your metric calculations manually
+     - Confirm the network loads and renders correctly
+
+  2. MAIN ANALYSIS (large dataset):
+     - Load amazon_nodes.csv and amazon_edges.csv
+     - Build a directed graph using networkx: nx.from_pandas_edgelist(...)
+     - Compute metrics: nx.average_clustering(), nx.pagerank(), etc.
+     - Merge computed metrics back to nodes for regression analysis
+
+  3. GEPHI IMPORT:
+     - Open Gephi > File > Import Spreadsheet
+     - Import amazon_nodes.csv as "Nodes table"
+     - Import amazon_edges.csv as "Edges table" (select "Directed")
+
+================================================================================
