@@ -1,8 +1,16 @@
 Metric,Value
-Number of Products,50953.0
+Number of Products (N),50953.0
+Directed Edges (E),1406222.0
+Network Density (D),0.0005416551700595443
 Average Degree,50.46291680568367
 Average In-Degree,22.864502580809766
 Average Out-Degree,27.598414224873903
 Average PageRank,1.4218986124467645e-05
-Average Clustering Coefficient,0.17362800688870134
-Number of Communities,19401.0
+"PageRank Variance (PRVar, ddof=1)",5.454995005656931e-10
+Average Clustering Coefficient (AvgCC),0.17362800688870134
+Modularity Score (Q),0.748
+Total Modularity Classes,19401.0
+Largest WCC (LWCC) Size,50862.0
+Largest WCC (LWCC) %,99.82140403901634
+Largest SCC (LSCC) Size,1842.0
+Largest SCC (LSCC) %,3.6150962651855636
